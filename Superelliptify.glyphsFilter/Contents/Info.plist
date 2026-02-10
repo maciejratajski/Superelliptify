@@ -19,10 +19,10 @@
 	<string>Superelliptify</string>
 
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>1.1.0</string>
 
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright, Maciej Ratajski, 2015-2026</string>

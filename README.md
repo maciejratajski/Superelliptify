@@ -21,17 +21,27 @@ Two parameters:
 
 Preset buttons for quick access: **Circle · Optical · Type · Squircle**
 
-A specific balance of the two parameters can be apllied among multiple glyphs of the same font family.
+A specific balance of the two parameters can be applied among multiple glyphs of the same font family.
 
 <img src="images/recta.png" width="370" height="530" alt="Nebite Torino Recta Typeface">
+
+## Distribution modes
+
+After computing new handle lengths, the plugin offers four distribution modes that control how handles and nodes are arranged:
+
+- **Balanced** — Default. Distributes handle lengths equally on both sides of each segment. On-curve points stay fixed.
+- **Preserve** — Applies the same overall tension but restores the designer's original handle-length ratio within each segment. Useful when the original imbalance was intentional.
+- **Smooth** — Balanced tension plus G2 curvature continuity at smooth nodes. Adjusts handle lengths at junctions between segments so curvature flows without breaks.
+- **Smart** — Balanced tension with handles fixed in place, then moves on-curve smooth nodes to achieve G2 continuity. Produces the cleanest handle positions at the cost of slightly shifting node locations.
 
 ## Key properties of the algorithm
 
 - Uses the Bézier circle approximation as its mathematical baseline, generalized to any segment angle
 - Preserves shapes with user-placed on-curve points — segments with small turning angles receive minimal adjustment
 - Eccentricity-aware: the Adjustment parameter makes oblong shapes trend toward rounded-rectangle forms, matching the stylistic consistency found in many real typefaces
-- Works on selected segments, whole glyphs, or across multiple glyphs, whole fonts, and font familes
+- Works on selected segments, whole glyphs, or across multiple glyphs, whole fonts, and font families
 - Can be used as a Custom Parameter on export for quick prototyping
+- Preview toggle for quick before/after comparison in the edit view
 
 ## Installation
 
@@ -47,19 +57,26 @@ Restart Glyphs after installing.
 
 **Filter menu** → **Superelliptify**
 
-Select curve segments (or select all), adjust the sliders, and click Apply.
+Select curve segments (or select all), adjust the sliders, choose a distribution mode, and click Apply. Use the Preview checkbox to toggle before/after in the edit view.
 
 **As a Custom Parameter** (for export instances):
 
 ```
 Superelliptify; tension:20; adjustment:50
+Superelliptify; tension:20; adjustment:50; distribution:preserve
+Superelliptify; tension:20; adjustment:50; distribution:smooth
+Superelliptify; tension:20; adjustment:50; distribution:smart
 ```
+
+Distribution defaults to balanced when omitted.
 
 ## Algorithm
 
 Algorithm designed in 2015 by Maciej Ratajski.
 
 Plugin structure informed by the [Curve Equalizer](https://github.com/jenskutilek/Curve-Equalizer) by Jens Kutilek.
+
+Smart distribution mode uses the harmonization algorithm by [Simon Cozens](https://gist.github.com/simoncozens/3c5d304ae2c14894393c6284df91be5b), as implemented in [Green Harmony](https://github.com/mekkablue/GreenHarmony) by Alex Slobzheninov and Rainer Erich Scheichelbauer (Apache-2.0).
 
 ## License
 
