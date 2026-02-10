@@ -34,6 +34,8 @@ After computing new handle lengths, the plugin offers four distribution modes th
 - **Smooth** — Balanced tension plus G2 curvature continuity at smooth nodes. Adjusts handle lengths at junctions between segments so curvature flows without breaks.
 - **Smart** — Balanced tension with handles fixed in place, then moves on-curve smooth nodes to achieve G2 continuity. Produces the cleanest handle positions at the cost of slightly shifting node locations.
 
+<img src="images/smart.png" width="800" height="700" alt="Superelliptify plugin in Glyphs 3 app using smart distribution method">
+
 ## Key properties of the algorithm
 
 - Uses the Bézier circle approximation as its mathematical baseline, generalized to any segment angle
