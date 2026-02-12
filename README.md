@@ -40,9 +40,9 @@ After computing new handle lengths, the plugin offers four distribution modes th
 
 The **Slant** parameter (-45° to 45°) makes Superelliptify work better on slanted and italic letterforms. Setting it to the same angle as the slanted glyphs produces results equivalent to superelliptifying upright contours and slanting them afterwards (thus introducing similar problems to slanting the upright contours).
 
-For shapes with slanted "italic extremes", using a negative value of roughly 1.5× the actual italic angle, combined with Smart distribution, pushes slanted ovals closer to the optically corrected target. So if your font uses an italic angle of 12°, try setting Slant to around -18° and see if this helps you get in the right ballpark.
+For shapes with slanted "italic extremes", using a negative value of roughly 1.5× the actual italic angle, combined with Smart distribution, pushes slanted ovals closer to the optically corrected target. So if your font uses an italic angle of 12°, you might want to try setting Slant to around -18° and see if this helps you get in the right ballpark.
 
-For shapes with correctly placed upright horizontal extremes, using the same Slant value as the italic angle combined with Smart distribution should produce best results.
+For shapes with correctly placed upright horizontal extremes, using the same Slant value as the italic angle in combination with Smart distribution should produce best results.
 
 <img src="images/slant.png" width="800" height="450" alt="Using Slant attribute in Superelliptify plugin in Glyphs 3">
 
