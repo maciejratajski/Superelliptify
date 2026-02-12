@@ -43,6 +43,7 @@ PRESET_SQUIRCLE = 100.0  # Full squircle
 # Default values (user-facing 0–100 scale)
 DEFAULT_TENSION_DISPLAY = 20.0
 DEFAULT_ADJUSTMENT = 50.0  # 0–100 scale, stored and displayed as such
+DEFAULT_SLANT = 0.0  # Slant angle in degrees (0 = upright)
 
 # Distribution modes
 DISTRIBUTION_BALANCED = "balanced"
@@ -74,6 +75,16 @@ def _map_angle(angle):
     elif angle < -math.pi:
         angle += 2.0 * math.pi
     return angle
+
+
+def deslant(x, y, tan_slant):
+    """Remove slant from a point: x' = x - y * tan(slant), y' = y."""
+    return (x - y * tan_slant, y)
+
+
+def reslant(x, y, tan_slant):
+    """Re-apply slant to a point: x' = x + y * tan(slant), y' = y."""
+    return (x + y * tan_slant, y)
 
 
 def get_tangent_angles(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y):

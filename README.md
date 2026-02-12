@@ -36,6 +36,16 @@ After computing new handle lengths, the plugin offers four distribution modes th
 
 <img src="images/smart.png" width="800" height="700" alt="Superelliptify plugin in Glyphs 3 app using smart distribution method">
 
+## Slant compensation for italics
+
+The **Slant** parameter (-45° to 45°) makes Superelliptify work better on slanted and italic letterforms. Setting it to the same angle as the slanted glyphs produces results equivalent to superelliptifying upright contours and slanting them afterwards (thus introducing similar problems to slanting the upright contours).
+
+For shapes with slanted "italic extremes", using a negative value of roughly 1.5× the actual italic angle, combined with Smart distribution, pushes slanted ovals closer to the optically corrected target. So if your font uses an italic angle of 12°, try setting Slant to around -18° and see if this helps you get in the right ballpark.
+
+For shapes with correctly placed upright horizontal extremes, using the same Slant value as the italic angle combined with Smart distribution should produce best results.
+
+<img src="images/slant.png" width="800" height="450" alt="Using Slant attribute in Superelliptify plugin in Glyphs 3">
+
 ## Key properties of the algorithm
 
 - Uses the Bézier circle approximation as its mathematical baseline, generalized to any segment angle
@@ -59,18 +69,19 @@ Restart Glyphs after installing.
 
 **Filter menu** → **Superelliptify**
 
-Select curve segments (or select all), adjust the sliders, choose a distribution mode, and click Apply. Use the Preview checkbox to toggle before/after in the edit view.
+Select curve segments (or select all), adjust the sliders, set the slant angle if working with italics, choose a distribution mode, and click Apply. Use the Preview checkbox to toggle before/after in the edit view.
 
 **As a Custom Parameter** (for export instances):
 
 ```
 Superelliptify; tension:20; adjustment:50
-Superelliptify; tension:20; adjustment:50; distribution:preserve
+Superelliptify; tension:20; adjustment:50; slant:12
+Superelliptify; tension:20; adjustment:50; slant:12; distribution:preserve
 Superelliptify; tension:20; adjustment:50; distribution:smooth
-Superelliptify; tension:20; adjustment:50; distribution:smart
+Superelliptify; tension:20; adjustment:50; slant:-18; distribution:smart
 ```
 
-Distribution defaults to balanced when omitted.
+Slant defaults to 0 when omitted. Distribution defaults to balanced when omitted.
 
 ## Algorithm
 

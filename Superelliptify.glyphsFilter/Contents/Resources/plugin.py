@@ -6,6 +6,7 @@ Adjusts cubic Bézier curve handle lengths along the diamond → circle → squi
 spectrum, with eccentricity-aware adjustment for oblong shapes.
 """
 
+import math
 import objc
 import os
 import sys
@@ -23,12 +24,15 @@ from SuperelliptifyCore import (
     redistribute_handles,
     smooth_handles_at_node,
     smart_node_position,
+    deslant,
+    reslant,
     PRESET_CIRCLE,
     PRESET_OPTICAL,
     PRESET_TYPE,
     PRESET_SQUIRCLE,
     DEFAULT_TENSION_DISPLAY,
     DEFAULT_ADJUSTMENT,
+    DEFAULT_SLANT,
     DEFAULT_DISTRIBUTION,
     DISTRIBUTION_BALANCED,
     DISTRIBUTION_PRESERVE,
@@ -39,6 +43,7 @@ from SuperelliptifyCore import (
 # Glyphs.defaults keys
 TENSION_KEY = "com.superelliptify.tension"
 ADJUSTMENT_KEY = "com.superelliptify.adjustment"
+SLANT_KEY = "com.superelliptify.slant"
 DISTRIBUTION_KEY = "com.superelliptify.distribution"
 
 
@@ -59,7 +64,7 @@ class Superelliptify(FilterWithDialog):
         labelW = 80       # wide enough for "Distribution:"
         ctrlX = 88        # left edge of controls (after label column)
         width = 290
-        height = 155
+        height = 180
 
         self.paletteView = Window((width, height))
         self.paletteView.group = Group((0, 0, width, height))
@@ -143,8 +148,27 @@ class Superelliptify(FilterWithDialog):
             sizeStyle="small",
         )
 
-        # --- Distribution mode rows (two lines) ---
+        # --- Slant row (text field only, no slider) ---
         y = 87
+        self.paletteView.group.slantLabel = TextBox(
+            (10, y + 1, labelW, 17),
+            "Slant:",
+            sizeStyle="small",
+        )
+        self.paletteView.group.slantField = EditText(
+            (ctrlX, y - 1, 55, 19),
+            text=self._format_value(DEFAULT_SLANT),
+            callback=self.slantFieldCallback_,
+            sizeStyle="small",
+        )
+        self.paletteView.group.slantUnit = TextBox(
+            (ctrlX + 57, y + 1, 20, 17),
+            "\u00B0",
+            sizeStyle="small",
+        )
+
+        # --- Distribution mode rows (two lines) ---
+        y = 112
         self.paletteView.group.distributionLabel = TextBox(
             (10, y + 1, labelW, 17),
             "Distribution:",
@@ -164,7 +188,7 @@ class Superelliptify(FilterWithDialog):
             sizeStyle="small",
             value=False,
         )
-        y = 107
+        y = 132
         self.paletteView.group.distributionSmooth = CheckBox(
             (ctrlX, y, 75, 18),
             "Smooth",
@@ -181,7 +205,7 @@ class Superelliptify(FilterWithDialog):
         )
 
         # --- Preview checkbox (bottom left, always defaults to checked) ---
-        y = 133
+        y = 158
         self.paletteView.group.previewCheckbox = CheckBox(
             (10, y, 80, 18),
             "Preview",
@@ -197,13 +221,17 @@ class Superelliptify(FilterWithDialog):
     def start(self):
         Glyphs.registerDefault(TENSION_KEY, DEFAULT_TENSION_DISPLAY)
         Glyphs.registerDefault(ADJUSTMENT_KEY, DEFAULT_ADJUSTMENT)
+        Glyphs.registerDefault(SLANT_KEY, DEFAULT_SLANT)
         Glyphs.registerDefault(DISTRIBUTION_KEY, DEFAULT_DISTRIBUTION)
         # Restore saved values to UI
         tension = float(Glyphs.defaults[TENSION_KEY])
         adjustment = float(Glyphs.defaults[ADJUSTMENT_KEY])
+        slant_raw = Glyphs.defaults[SLANT_KEY]
+        slant = float(slant_raw) if slant_raw is not None else DEFAULT_SLANT
         distribution = str(Glyphs.defaults[DISTRIBUTION_KEY])
         self._set_tension_ui(tension)
         self._set_adjustment_ui(adjustment)
+        self._set_slant_ui(slant)
         self._set_distribution_ui(distribution)
 
     # -------------------------------------------------------------------
@@ -273,6 +301,24 @@ class Superelliptify(FilterWithDialog):
         self.update()
 
     # -------------------------------------------------------------------
+    # Slant callback
+    # -------------------------------------------------------------------
+
+    @objc.python_method
+    def slantFieldCallback_(self, sender):
+        raw = sender.get()
+        if raw is None or str(raw).strip() == "":
+            value = 0.0
+        else:
+            try:
+                value = float(raw)
+            except (ValueError, TypeError):
+                return
+        value = max(-45.0, min(45.0, value))
+        Glyphs.defaults[SLANT_KEY] = value
+        self.update()
+
+    # -------------------------------------------------------------------
     # Distribution callbacks
     # -------------------------------------------------------------------
 
@@ -323,6 +369,10 @@ class Superelliptify(FilterWithDialog):
         self.paletteView.group.adjustmentField.set(self._format_value(value))
 
     @objc.python_method
+    def _set_slant_ui(self, value):
+        self.paletteView.group.slantField.set(self._format_value(value))
+
+    @objc.python_method
     def _set_distribution_ui(self, mode):
         self.paletteView.group.distributionBalanced.set(
             mode == DISTRIBUTION_BALANCED)
@@ -359,12 +409,18 @@ class Superelliptify(FilterWithDialog):
                 "tension", DEFAULT_TENSION_DISPLAY))
             adjustment_display = float(customParameters.get(
                 "adjustment", DEFAULT_ADJUSTMENT))
+            slant = float(customParameters.get("slant", DEFAULT_SLANT))
             distribution = str(customParameters.get(
                 "distribution", DEFAULT_DISTRIBUTION))
         else:
             tension_display = float(Glyphs.defaults[TENSION_KEY])
             adjustment_display = float(Glyphs.defaults[ADJUSTMENT_KEY])
+            slant_raw = Glyphs.defaults[SLANT_KEY]
+            slant = float(slant_raw) if slant_raw is not None else DEFAULT_SLANT
             distribution = str(Glyphs.defaults[DISTRIBUTION_KEY])
+
+        # Precompute tangent for slant shear transform
+        tan_slant = math.tan(math.radians(slant)) if slant != 0.0 else 0.0
 
         selection = None
         if inEditView:
@@ -404,12 +460,18 @@ class Superelliptify(FilterWithDialog):
                 p2_orig_y = p2.position.y
                 originals[i] = (p1_orig_x, p1_orig_y, p2_orig_x, p2_orig_y)
 
+                # Deslant the 4 control points for computation
+                d_p0x, d_p0y = deslant(p0.position.x, p0.position.y, tan_slant)
+                d_p1x, d_p1y = deslant(p1_orig_x, p1_orig_y, tan_slant)
+                d_p2x, d_p2y = deslant(p2_orig_x, p2_orig_y, tan_slant)
+                d_p3x, d_p3y = deslant(p3.position.x, p3.position.y, tan_slant)
+
                 # Step 1: Apply superellipticity (always balanced)
                 result = compute_handles(
-                    p0.position.x, p0.position.y,
-                    p1_orig_x, p1_orig_y,
-                    p2_orig_x, p2_orig_y,
-                    p3.position.x, p3.position.y,
+                    d_p0x, d_p0y,
+                    d_p1x, d_p1y,
+                    d_p2x, d_p2y,
+                    d_p3x, d_p3y,
                     tension_display=tension_display,
                     adjustment_display=adjustment_display,
                 )
@@ -421,13 +483,17 @@ class Superelliptify(FilterWithDialog):
                 # Step 2a: Redistribute toward original ratio (preserve mode)
                 if distribution == DISTRIBUTION_PRESERVE:
                     new_p1x, new_p1y, new_p2x, new_p2y = redistribute_handles(
-                        p0.position.x, p0.position.y,
-                        p1_orig_x, p1_orig_y,
-                        p2_orig_x, p2_orig_y,
+                        d_p0x, d_p0y,
+                        d_p1x, d_p1y,
+                        d_p2x, d_p2y,
                         new_p1x, new_p1y,
                         new_p2x, new_p2y,
-                        p3.position.x, p3.position.y,
+                        d_p3x, d_p3y,
                     )
+
+                # Reslant the new handle positions
+                new_p1x, new_p1y = reslant(new_p1x, new_p1y, tan_slant)
+                new_p2x, new_p2y = reslant(new_p2x, new_p2y, tan_slant)
 
                 p1.position = (new_p1x, new_p1y)
                 p2.position = (new_p2x, new_p2y)
@@ -473,17 +539,28 @@ class Superelliptify(FilterWithDialog):
                     b2 = path.nodes[(i + 2) % n_nodes]
                     p3b = path.nodes[(i + 3) % n_nodes]
 
+                    # Deslant all points for computation
+                    d_p0ax, d_p0ay = deslant(p0a.position.x, p0a.position.y, tan_slant)
+                    d_a1x, d_a1y = deslant(a1.position.x, a1.position.y, tan_slant)
+                    d_a2x, d_a2y = deslant(a2.position.x, a2.position.y, tan_slant)
+                    d_nx, d_ny = deslant(node.position.x, node.position.y, tan_slant)
+                    d_b1x, d_b1y = deslant(b1.position.x, b1.position.y, tan_slant)
+                    d_b2x, d_b2y = deslant(b2.position.x, b2.position.y, tan_slant)
+                    d_p3bx, d_p3by = deslant(p3b.position.x, p3b.position.y, tan_slant)
+
                     result = smooth_handles_at_node(
-                        p0a.position.x, p0a.position.y,
-                        a1.position.x, a1.position.y,
-                        a2.position.x, a2.position.y,
-                        node.position.x, node.position.y,
-                        b1.position.x, b1.position.y,
-                        b2.position.x, b2.position.y,
-                        p3b.position.x, p3b.position.y,
+                        d_p0ax, d_p0ay,
+                        d_a1x, d_a1y,
+                        d_a2x, d_a2y,
+                        d_nx, d_ny,
+                        d_b1x, d_b1y,
+                        d_b2x, d_b2y,
+                        d_p3bx, d_p3by,
                     )
 
                     new_a2x, new_a2y, new_b1x, new_b1y = result
+                    new_a2x, new_a2y = reslant(new_a2x, new_a2y, tan_slant)
+                    new_b1x, new_b1y = reslant(new_b1x, new_b1y, tan_slant)
                     a2.position = (new_a2x, new_a2y)
                     b1.position = (new_b1x, new_b1y)
 
@@ -521,16 +598,26 @@ class Superelliptify(FilterWithDialog):
                     b2 = path.nodes[(i + 2) % n_nodes]
                     p3b = path.nodes[(i + 3) % n_nodes]
 
+                    # Deslant all points for computation
+                    d_p0ax, d_p0ay = deslant(p0a.position.x, p0a.position.y, tan_slant)
+                    d_a1x, d_a1y = deslant(a1.position.x, a1.position.y, tan_slant)
+                    d_a2x, d_a2y = deslant(a2.position.x, a2.position.y, tan_slant)
+                    d_nx, d_ny = deslant(node.position.x, node.position.y, tan_slant)
+                    d_b1x, d_b1y = deslant(b1.position.x, b1.position.y, tan_slant)
+                    d_b2x, d_b2y = deslant(b2.position.x, b2.position.y, tan_slant)
+                    d_p3bx, d_p3by = deslant(p3b.position.x, p3b.position.y, tan_slant)
+
                     new_nx, new_ny = smart_node_position(
-                        p0a.position.x, p0a.position.y,
-                        a1.position.x, a1.position.y,
-                        a2.position.x, a2.position.y,
-                        node.position.x, node.position.y,
-                        b1.position.x, b1.position.y,
-                        b2.position.x, b2.position.y,
-                        p3b.position.x, p3b.position.y,
+                        d_p0ax, d_p0ay,
+                        d_a1x, d_a1y,
+                        d_a2x, d_a2y,
+                        d_nx, d_ny,
+                        d_b1x, d_b1y,
+                        d_b2x, d_b2y,
+                        d_p3bx, d_p3by,
                     )
 
+                    new_nx, new_ny = reslant(new_nx, new_ny, tan_slant)
                     node.position = (new_nx, new_ny)
 
     # -------------------------------------------------------------------
@@ -540,11 +627,15 @@ class Superelliptify(FilterWithDialog):
     @objc.python_method
     def generateCustomParameter(self):
         distribution = str(Glyphs.defaults[DISTRIBUTION_KEY])
+        slant_raw = Glyphs.defaults[SLANT_KEY]
+        slant = float(slant_raw) if slant_raw is not None else DEFAULT_SLANT
         parts = "%s; tension:%s; adjustment:%s" % (
             self.__class__.__name__,
             self._format_value(float(Glyphs.defaults[TENSION_KEY])),
             self._format_value(float(Glyphs.defaults[ADJUSTMENT_KEY])),
         )
+        if slant != 0.0:
+            parts += "; slant:%s" % self._format_value(slant)
         if distribution != DEFAULT_DISTRIBUTION:
             parts += "; distribution:%s" % distribution
         return parts
