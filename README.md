@@ -4,7 +4,7 @@ A filter plugin for [Glyphs 3](https://glyphsapp.com) that adjusts cubic Bézier
 
 The optional Adjustment parameter allows for adaptive curve Tension application that follows segment geometry. It increases Tension for more oblong shapes, reflecting a pattern found across many typefaces and font families.
 
-The algorithm scales its effect to the turning angle of each segment. Shorter curve segments receive proportionally less change, preserving shapes defined by deliberately placed on-curve points. This allows for non-destructive application to multiple shapes at once (e.g. for prototyping).
+The algorithm scales its effect to the turning angle of each segment. Shorter curve segments receive proportionally less change, preserving shapes defined by deliberately placed on-curve points. This allows for less destructive application to multiple shapes at once (e.g. for prototyping).
 
 <img src="images/superelliptify.png" width="700" height="620" alt="Superelliptify plugin in Glyphs 3 app">
 
