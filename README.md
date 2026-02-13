@@ -16,7 +16,7 @@ Superelliptify controls how "round" or "square" your curves are by adjusting off
 
 Two parameters:
 
-- **Tension** (0–100) — controls the superellipticity. 0 = exact circle approximation, 13 = optically correct circle, 20 = a good default for type design, 100 = full squircle.
+- **Tension** (0–100) — controls the superellipticity. 0 = exact circle approximation, 13 = optically correct circle, 20 = a good starting point for type design, 100 = full squircle.
 - **Adjustment** (0–100) — eccentricity compensation. At higher values, more oblong shapes are pushed further toward squircle-like forms. This reflects a pattern observed across many typefaces: narrow shapes tend to resemble rounded rectangles rather than squished circles.
 
 Preset buttons for quick access: **Circle · Optical · Type · Squircle**
