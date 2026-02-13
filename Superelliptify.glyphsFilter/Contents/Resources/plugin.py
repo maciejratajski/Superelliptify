@@ -53,6 +53,12 @@ class Superelliptify(FilterWithDialog):
 
     @objc.python_method
     def settings(self):
+        # Register defaults early — filter() may be called before start()
+        Glyphs.registerDefault(TENSION_KEY, DEFAULT_TENSION_DISPLAY)
+        Glyphs.registerDefault(ADJUSTMENT_KEY, DEFAULT_ADJUSTMENT)
+        Glyphs.registerDefault(SLANT_KEY, DEFAULT_SLANT)
+        Glyphs.registerDefault(DISTRIBUTION_KEY, DEFAULT_DISTRIBUTION)
+
         self.menuName = Glyphs.localize({
             "en": "Superelliptify",
         })
